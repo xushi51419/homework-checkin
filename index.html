@@ -1,0 +1,2106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>作业打卡小助手 ⭐</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --primary: #FF9F43;
+            --primary-light: #FFB76B;
+            --success: #26DE81;
+            --accent: #FD79A8;
+            --bg: #FFF9F0;
+            --bg-card: #FFFFFF;
+            --text: #2D3436;
+            --text-light: #636E72;
+            --warning: #FF6B6B;
+            --star: #FFD93D;
+            --math: #74B9FF;
+            --chinese: #A29BFE;
+            --english: #55EFC4;
+            --other: #DFE6E9;
+            --shadow: 0 4px 15px rgba(255, 159, 67, 0.15);
+            --radius: 20px;
+            --radius-lg: 28px;
+        }
+
+        body {
+            font-family: "Nunito", "Comic Sans MS", cursive, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            max-width: 480px;
+            margin: 0 auto;
+            padding-bottom: 80px;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            padding: 20px;
+            padding-top: 30px;
+            border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(255, 159, 67, 0.3);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .profile-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .avatar {
+            font-size: 32px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-name {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .user-grade {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .settings-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            font-size: 22px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .settings-btn:hover {
+            background: rgba(255,255,255,0.35);
+            transform: rotate(30deg);
+        }
+
+        .points-display {
+            background: rgba(255,255,255,0.25);
+            border-radius: var(--radius);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .points-main {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 28px;
+            font-weight: 800;
+        }
+
+        .points-main .star-icon {
+            font-size: 32px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .points-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .streak-badge {
+            background: var(--accent);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 20px;
+        }
+
+        /* Date Card */
+        .date-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .date-text {
+            font-size: 18px;
+            color: var(--text-light);
+            margin-bottom: 8px;
+        }
+
+        .date-day {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .checkin-status {
+            margin-top: 12px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            display: inline-block;
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .checkin-status.done {
+            background: linear-gradient(135deg, var(--success), #20BF6B);
+            color: white;
+        }
+
+        .checkin-status.pending {
+            background: #FFF3E0;
+            color: var(--primary);
+        }
+
+        /* Section Title */
+        .section-title {
+            font-size: 20px;
+            font-weight: 800;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Homework Section */
+        .homework-section {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .homework-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .homework-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #FAFAFA;
+            border-radius: var(--radius);
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .homework-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .homework-item.completed {
+            background: #E8F8F0;
+        }
+
+        .homework-item.completed .homework-name {
+            text-decoration: line-through;
+            color: var(--text-light);
+        }
+
+        .homework-checkbox {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 3px solid #DDD;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .homework-item.completed .homework-checkbox {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+            animation: checkBounce 0.4s ease;
+        }
+
+        @keyframes checkBounce {
+            0% { transform: scale(0.5); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .homework-info {
+            flex: 1;
+        }
+
+        .homework-name {
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .homework-meta {
+            display: flex;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        .subject-tag {
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 12px;
+            color: white;
+        }
+
+        .subject-tag.math { background: var(--math); }
+        .subject-tag.chinese { background: var(--chinese); }
+        .subject-tag.english { background: var(--english); }
+        .subject-tag.other { background: var(--other); color: var(--text); }
+
+        .homework-points {
+            font-size: 14px;
+            color: var(--star);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .homework-actions {
+            display: flex;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .homework-item:hover .homework-actions {
+            opacity: 1;
+        }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .action-btn.delete {
+            background: #FFE5E5;
+            color: var(--warning);
+        }
+
+        .action-btn.edit {
+            background: #E5F0FF;
+            color: #5B8DEF;
+        }
+
+        /* Add Homework Button */
+        .add-homework-btn {
+            width: 100%;
+            padding: 16px;
+            border: 3px dashed #DDD;
+            border-radius: var(--radius);
+            background: transparent;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .add-homework-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: #FFF9F0;
+        }
+
+        /* Rewards Section */
+        .rewards-section {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .rewards-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .reward-card {
+            background: linear-gradient(135deg, #FFF9F0, #FFF);
+            border-radius: var(--radius);
+            padding: 15px;
+            text-align: center;
+            border: 2px solid #FFE8D6;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .reward-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(255, 159, 67, 0.2);
+            border-color: var(--primary);
+        }
+
+        .reward-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .reward-card.disabled:hover {
+            transform: none;
+            box-shadow: none;
+            border-color: #FFE8D6;
+        }
+
+        .reward-icon {
+            font-size: 40px;
+            margin-bottom: 8px;
+        }
+
+        .reward-name {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: var(--text);
+        }
+
+        .reward-price {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: linear-gradient(135deg, var(--star), #FFC107);
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            font-weight: 800;
+            color: #7B5800;
+        }
+
+        .reward-remaining {
+            font-size: 11px;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+
+        /* Achievement Section */
+        .achievement-section {
+            background: linear-gradient(135deg, #FFF0F5, #FFF9F0);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .achievement-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .achievement-card {
+            background: white;
+            border-radius: var(--radius);
+            padding: 15px;
+            text-align: center;
+        }
+
+        .achievement-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .achievement-value {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .achievement-label {
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 480px;
+            background: white;
+            padding: 10px 20px;
+            padding-bottom: 20px;
+            display: flex;
+            justify-content: space-around;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            z-index: 100;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 20px;
+            border-radius: 15px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-light);
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+            background: #FFF3E0;
+        }
+
+        .nav-item.active .nav-icon {
+            transform: scale(1.2);
+        }
+
+        .nav-icon {
+            font-size: 24px;
+            transition: transform 0.3s;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 25px;
+            width: 100%;
+            max-width: 360px;
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal-title {
+            font-size: 22px;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-label {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-light);
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #E8E8E8;
+            border-radius: var(--radius);
+            font-size: 16px;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(255, 159, 67, 0.15);
+        }
+
+        .subject-selector {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .subject-option {
+            padding: 10px 18px;
+            border-radius: 20px;
+            border: 2px solid #E8E8E8;
+            background: white;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .subject-option.active {
+            color: white;
+            border-color: transparent;
+        }
+
+        .subject-option[data-subject="math"].active { background: var(--math); }
+        .subject-option[data-subject="chinese"].active { background: var(--chinese); }
+        .subject-option[data-subject="english"].active { background: var(--english); }
+        .subject-option[data-subject="other"].active { background: var(--other); color: var(--text); }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 25px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border-radius: var(--radius);
+            border: none;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 159, 67, 0.4);
+        }
+
+        .btn-secondary {
+            background: #F5F5F5;
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            background: #EBEBEB;
+        }
+
+        .btn-danger {
+            background: var(--warning);
+            color: white;
+        }
+
+        /* Settings Page */
+        .settings-page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg);
+            z-index: 200;
+            transform: translateX(100%);
+            transition: transform 0.4s ease;
+            overflow-y: auto;
+            padding-bottom: 40px;
+        }
+
+        .settings-page.active {
+            transform: translateX(0);
+        }
+
+        .settings-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            padding: 20px;
+            padding-top: 40px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .settings-title {
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        .settings-content {
+            padding: 20px;
+        }
+
+        .settings-section {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: var(--shadow);
+        }
+
+        .settings-section-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--text-light);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .avatar-selector {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .avatar-option {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid #E8E8E8;
+            font-size: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #FAFAFA;
+        }
+
+        .avatar-option.active {
+            border-color: var(--primary);
+            background: #FFF3E0;
+        }
+
+        .avatar-option:hover {
+            transform: scale(1.1);
+        }
+
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #F0F0F0;
+        }
+
+        .settings-row:last-child {
+            border-bottom: none;
+        }
+
+        .settings-row-label {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .settings-row-value {
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        .number-input {
+            width: 80px;
+            padding: 8px 12px;
+            border: 2px solid #E8E8E8;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            text-align: center;
+            font-family: inherit;
+        }
+
+        .number-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Template List */
+        .template-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .template-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: #FAFAFA;
+            border-radius: var(--radius);
+        }
+
+        .template-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .template-name {
+            font-weight: 700;
+        }
+
+        .add-template-btn {
+            width: 100%;
+            padding: 14px;
+            border: 2px dashed #DDD;
+            border-radius: var(--radius);
+            background: transparent;
+            color: var(--text-light);
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+
+        .add-template-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Celebration Animation */
+        .celebration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2000;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: fall 1.5s ease-out forwards;
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(-10px) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        .star-burst {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 80px;
+            animation: starBurst 0.8s ease-out forwards;
+            z-index: 2001;
+        }
+
+        @keyframes starBurst {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.3);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0;
+            }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-light);
+        }
+
+        .empty-icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+        }
+
+        .empty-text {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #333;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 30px;
+            font-size: 15px;
+            font-weight: 700;
+            z-index: 3000;
+            opacity: 0;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Confirm Dialog */
+        .confirm-text {
+            font-size: 15px;
+            text-align: center;
+            color: var(--text-light);
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        /* History Section */
+        .history-section {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            text-align: center;
+        }
+
+        .calendar-header {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-light);
+            padding: 5px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 50%;
+            margin: 3px 0;
+        }
+
+        .calendar-day.empty {
+            color: #DDD;
+        }
+
+        .calendar-day.completed {
+            background: var(--success);
+            color: white;
+        }
+
+        .calendar-day.partial {
+            background: var(--star);
+            color: #7B5800;
+        }
+
+        .calendar-day.today {
+            border: 2px solid var(--primary);
+        }
+
+        .calendar-day:not(.empty):not(.completed):not(.partial) {
+            color: var(--text-light);
+        }
+
+        /* Points Animation */
+        .points-change {
+            position: absolute;
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--star);
+            animation: floatUp 1s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+        }
+
+        /* Weekly Chart */
+        .weekly-chart {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            height: 100px;
+            padding: 10px 0;
+        }
+
+        .chart-bar-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .chart-bar {
+            width: 30px;
+            background: linear-gradient(to top, var(--primary), var(--primary-light));
+            border-radius: 8px 8px 0 0;
+            transition: height 0.5s ease;
+        }
+
+        .chart-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-light);
+        }
+
+        .chart-value {
+            font-size: 11px;
+            color: var(--text-light);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-top">
+            <div class="profile-info">
+                <div class="avatar" id="headerAvatar">🧒</div>
+                <div>
+                    <div class="user-name" id="headerName">小明</div>
+                    <div class="user-grade" id="headerGrade">二年级</div>
+                </div>
+            </div>
+            <button class="settings-btn" onclick="openSettings()">⚙️</button>
+        </div>
+        <div class="points-display">
+            <div>
+                <div class="points-main">
+                    <span class="star-icon">⭐</span>
+                    <span id="totalPoints">0</span>
+                </div>
+                <div class="points-label">我的星星</div>
+            </div>
+            <div class="streak-badge" id="streakBadge">🔥 连续0天</div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Date Card -->
+        <div class="date-card">
+            <div class="date-text" id="dateText"></div>
+            <div class="date-day" id="dateDay"></div>
+            <div class="checkin-status" id="checkinStatus">
+                <span id="statusText">今日打卡进行中</span>
+            </div>
+        </div>
+
+        <!-- Today's Homework -->
+        <div class="homework-section">
+            <div class="section-title">📚 今日作业</div>
+            <div class="homework-list" id="homeworkList"></div>
+            <button class="add-homework-btn" onclick="openAddHomework()">
+                <span>➕</span> 添加作业
+            </button>
+        </div>
+
+        <!-- Weekly Progress -->
+        <div class="history-section">
+            <div class="section-title">📊 本周完成情况</div>
+            <div class="weekly-chart" id="weeklyChart"></div>
+        </div>
+
+        <!-- Rewards -->
+        <div class="rewards-section">
+            <div class="section-title">🎁 奖励超市</div>
+            <div class="rewards-grid" id="rewardsGrid"></div>
+        </div>
+
+        <!-- Achievements -->
+        <div class="achievement-section">
+            <div class="section-title">🏆 我的成就</div>
+            <div class="achievement-grid">
+                <div class="achievement-card">
+                    <div class="achievement-icon">🔥</div>
+                    <div class="achievement-value" id="totalDays">0</div>
+                    <div class="achievement-label">累计打卡天数</div>
+                </div>
+                <div class="achievement-card">
+                    <div class="achievement-icon">⭐</div>
+                    <div class="achievement-value" id="weekPoints">0</div>
+                    <div class="achievement-label">本周获得星星</div>
+                </div>
+                <div class="achievement-card">
+                    <div class="achievement-icon">🎯</div>
+                    <div class="achievement-value" id="totalCompleted">0</div>
+                    <div class="achievement-label">已完成作业数</div>
+                </div>
+                <div class="achievement-card">
+                    <div class="achievement-icon">🎁</div>
+                    <div class="achievement-value" id="totalRedeemed">0</div>
+                    <div class="achievement-label">已兑换奖励</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <button class="nav-item active" onclick="switchTab('home')">
+            <span class="nav-icon">🏠</span>
+            <span>首页</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('homework')">
+            <span class="nav-icon">📋</span>
+            <span>作业</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('rewards')">
+            <span class="nav-icon">🎁</span>
+            <span>奖励</span>
+        </button>
+        <button class="nav-item" onclick="openSettings()">
+            <span class="nav-icon">👤</span>
+            <span>我的</span>
+        </button>
+    </nav>
+
+    <!-- Add/Edit Homework Modal -->
+    <div class="modal-overlay" id="homeworkModal">
+        <div class="modal">
+            <div class="modal-title" id="modalTitle">➕ 添加作业</div>
+            <div class="form-group">
+                <label class="form-label">作业名称</label>
+                <input type="text" class="form-input" id="homeworkName" placeholder="例如：数学练习">
+            </div>
+            <div class="form-group">
+                <label class="form-label">数量（题/个）</label>
+                <input type="number" class="form-input" id="homeworkQty" placeholder="例如：10" min="1">
+            </div>
+            <div class="form-group">
+                <label class="form-label">选择科目</label>
+                <div class="subject-selector">
+                    <button type="button" class="subject-option active" data-subject="math" onclick="selectSubject(this)">🔢 数学</button>
+                    <button type="button" class="subject-option" data-subject="chinese" onclick="selectSubject(this)">📝 语文</button>
+                    <button type="button" class="subject-option" data-subject="english" onclick="selectSubject(this)">🔤 英语</button>
+                    <button type="button" class="subject-option" data-subject="other" onclick="selectSubject(this)">📖 其他</button>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeModal('homeworkModal')">取消</button>
+                <button class="btn btn-primary" onclick="saveHomework()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Reward Modal -->
+    <div class="modal-overlay" id="rewardModal">
+        <div class="modal">
+            <div class="modal-title">🎁 添加奖励</div>
+            <div class="form-group">
+                <label class="form-label">奖励名称</label>
+                <input type="text" class="form-input" id="rewardName" placeholder="例如：玩游戏30分钟">
+            </div>
+            <div class="form-group">
+                <label class="form-label">图标</label>
+                <input type="text" class="form-input" id="rewardEmoji" placeholder="例如：🎮" maxlength="2">
+            </div>
+            <div class="form-group">
+                <label class="form-label">所需星星数</label>
+                <input type="number" class="form-input" id="rewardPrice" placeholder="例如：10" min="1">
+            </div>
+            <div class="form-group">
+                <label class="form-label">兑换次数（留空为无限）</label>
+                <input type="number" class="form-input" id="rewardQty" placeholder="例如：3" min="1">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeModal('rewardModal')">取消</button>
+                <button class="btn btn-primary" onclick="saveReward()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Redeem Confirm Modal -->
+    <div class="modal-overlay" id="redeemModal">
+        <div class="modal">
+            <div class="modal-title">🎉 确认兑换</div>
+            <p class="confirm-text" id="redeemConfirmText"></p>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeModal('redeemModal')">再想想</button>
+                <button class="btn btn-primary" onclick="confirmRedeem()">确认兑换</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirm Modal -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal">
+            <div class="modal-title">🗑️ 确认删除</div>
+            <p class="confirm-text" id="deleteConfirmText"></p>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeModal('deleteModal')">取消</button>
+                <button class="btn btn-danger" onclick="confirmDelete()">删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Page -->
+    <div class="settings-page" id="settingsPage">
+        <div class="settings-header">
+            <button class="back-btn" onclick="closeSettings()">←</button>
+            <div class="settings-title">⚙️ 设置</div>
+        </div>
+        <div class="settings-content">
+            <!-- Profile -->
+            <div class="settings-section">
+                <div class="settings-section-title">👤 个人信息</div>
+                <div class="avatar-selector" id="avatarSelector"></div>
+                <div class="form-group" style="margin-top: 15px;">
+                    <label class="form-label">名字</label>
+                    <input type="text" class="form-input" id="settingsName" placeholder="请输入名字">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">年级</label>
+                    <input type="text" class="form-input" id="settingsGrade" placeholder="例如：二年级">
+                </div>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="saveProfile()">保存信息</button>
+            </div>
+
+            <!-- Points Rules -->
+            <div class="settings-section">
+                <div class="settings-section-title">⭐ 积分规则</div>
+                <div class="settings-row">
+                    <span class="settings-row-label">完成作业基础奖励</span>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <input type="number" class="number-input" id="basePoints" min="1" max="20">
+                        <span>星</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-row-label">按时完成额外奖励</span>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <input type="number" class="number-input" id="onTimeBonus" min="0" max="10">
+                        <span>星</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-row-label">连续打卡每天加成</span>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <input type="number" class="number-input" id="streakBonus" min="0" max="5">
+                        <span>星</span>
+                    </div>
+                </div>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 15px;" onclick="saveSettings()">保存设置</button>
+            </div>
+
+            <!-- Homework Templates -->
+            <div class="settings-section">
+                <div class="settings-section-title">📋 作业模板</div>
+                <div class="template-list" id="templateList"></div>
+                <button class="add-template-btn" style="margin-top: 15px;" onclick="openAddTemplate()">
+                    <span>➕</span> 添加模板
+                </button>
+            </div>
+
+            <!-- Rewards Management -->
+            <div class="settings-section">
+                <div class="settings-section-title">🎁 奖励管理</div>
+                <div class="template-list" id="rewardsList"></div>
+                <button class="add-template-btn" style="margin-top: 15px;" onclick="openAddReward()">
+                    <span>➕</span> 添加奖励
+                </button>
+            </div>
+
+            <!-- Data Management -->
+            <div class="settings-section">
+                <div class="settings-section-title">📦 数据管理</div>
+                <button class="btn btn-secondary" style="width: 100%;" onclick="exportData()">📤 导出数据</button>
+                <button class="btn btn-danger" style="width: 100%; margin-top: 10px;" onclick="resetData()">🗑️ 重置所有数据</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Celebration Container -->
+    <div class="celebration" id="celebration"></div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ==================== Data Management ====================
+        const STORAGE_KEY = 'homeworkCheckin';
+        
+        const defaultData = {
+            profile: {
+                name: '小明',
+                grade: '二年级',
+                avatar: '🧒'
+            },
+            points: 0,
+            settings: {
+                basePoints: 5,
+                onTimeBonus: 2,
+                streakBonus: 1
+            },
+            homeworkTemplates: [
+                { id: 1, name: '数学练习', subject: 'math', defaultQty: 10 },
+                { id: 2, name: '语文生字', subject: 'chinese', defaultQty: 5 },
+                { id: 3, name: '英语单词', subject: 'english', defaultQty: 8 },
+                { id: 4, name: '阅读课外书', subject: 'other', defaultQty: 1 }
+            ],
+            todayHomework: [],
+            rewards: [
+                { id: 1, name: '玩游戏30分钟', emoji: '🎮', price: 10, unlimited: true },
+                { id: 2, name: '看动画片1集', emoji: '📺', price: 8, unlimited: true },
+                { id: 3, name: '买小零食', emoji: '🍪', price: 15, unlimited: false, quantity: 3, remaining: 3 },
+                { id: 4, name: '周末多玩1小时', emoji: '⏰', price: 25, unlimited: true }
+            ],
+            history: {},
+            stats: {
+                totalDays: 0,
+                totalCompleted: 0,
+                totalRedeemed: 0,
+                weekPoints: 0
+            }
+        };
+
+        function getData() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                return JSON.parse(stored);
+            }
+            return { ...defaultData };
+        }
+
+        function saveData(data) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+
+        // ==================== Initialization ====================
+        function init() {
+            const data = getData();
+            
+            // Update header
+            document.getElementById('headerAvatar').textContent = data.profile.avatar;
+            document.getElementById('headerName').textContent = data.profile.name;
+            document.getElementById('headerGrade').textContent = data.profile.grade;
+            
+            // Update points
+            updatePointsDisplay(data.points);
+            
+            // Update date
+            updateDate();
+            
+            // Check if need new day reset
+            checkDayReset(data);
+            
+            // Render lists
+            renderHomework();
+            renderRewards();
+            renderAchievements();
+            renderWeeklyChart();
+            
+            // Init settings
+            initSettings();
+        }
+
+        function updatePointsDisplay(points) {
+            const el = document.getElementById('totalPoints');
+            el.textContent = points;
+            el.style.transform = 'scale(1.2)';
+            setTimeout(() => el.style.transform = 'scale(1)', 200);
+        }
+
+        function updateDate() {
+            const now = new Date();
+            const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            const month = now.getMonth() + 1;
+            const date = now.getDate();
+            const weekday = weekdays[now.getDay()];
+            
+            document.getElementById('dateText').textContent = `${month}月${date}日 ${weekday}`;
+            document.getElementById('dateDay').textContent = todayKey();
+        }
+
+        function todayKey() {
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        }
+
+        function checkDayReset(data) {
+            const today = todayKey();
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayKey = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+            
+            // Check streak
+            let streak = 0;
+            let checkDate = new Date();
+            while (true) {
+                const key = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+                if (data.history[key] && data.history[key].completed) {
+                    streak++;
+                    checkDate.setDate(checkDate.getDate() - 1);
+                } else {
+                    break;
+                }
+            }
+            
+            document.getElementById('streakBadge').textContent = `🔥 连续${streak}天`;
+            data.streak = streak;
+            saveData(data);
+        }
+
+        // ==================== Homework ====================
+        function renderHomework() {
+            const data = getData();
+            const list = document.getElementById('homeworkList');
+            const today = todayKey();
+            
+            if (!data.todayHomework || data.todayHomework.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🎉</div>
+                        <div class="empty-text">太棒了！今天没有作业</div>
+                    </div>
+                `;
+                document.getElementById('checkinStatus').className = 'checkin-status done';
+                document.getElementById('statusText').textContent = '今日作业已全部完成！';
+                return;
+            }
+            
+            const allCompleted = data.todayHomework.every(h => h.completed);
+            const completedCount = data.todayHomework.filter(h => h.completed).length;
+            
+            if (allCompleted) {
+                document.getElementById('checkinStatus').className = 'checkin-status done';
+                document.getElementById('statusText').textContent = '🎉 今日作业已全部完成！';
+            } else {
+                document.getElementById('checkinStatus').className = 'checkin-status pending';
+                document.getElementById('statusText').textContent = `📝 ${completedCount}/${data.todayHomework.length} 已完成`;
+            }
+            
+            list.innerHTML = data.todayHomework.map((homework, index) => `
+                <div class="homework-item ${homework.completed ? 'completed' : ''}" onclick="toggleHomework(${index})">
+                    <div class="homework-checkbox">${homework.completed ? '✓' : ''}</div>
+                    <div class="homework-info">
+                        <div class="homework-name">${homework.name}</div>
+                        <div class="homework-meta">
+                            <span class="subject-tag ${homework.subject}">${getSubjectLabel(homework.subject)}</span>
+                            <span>${homework.qty} ${getSubjectUnit(homework.subject)}</span>
+                        </div>
+                    </div>
+                    ${!homework.completed ? `
+                        <div class="homework-points">⭐ +${data.settings.basePoints}</div>
+                        <div class="homework-actions">
+                            <button class="action-btn edit" onclick="event.stopPropagation(); editHomework(${index})">✏️</button>
+                            <button class="action-btn delete" onclick="event.stopPropagation(); deleteHomework(${index})">🗑️</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function getSubjectLabel(subject) {
+            const labels = { math: '数学', chinese: '语文', english: '英语', other: '其他' };
+            return labels[subject] || '其他';
+        }
+
+        function getSubjectUnit(subject) {
+            return subject === 'other' ? '项' : '题';
+        }
+
+        function toggleHomework(index) {
+            const data = getData();
+            const homework = data.todayHomework[index];
+            
+            if (homework.completed) {
+                // Uncomplete
+                homework.completed = false;
+                homework.completedAt = null;
+                data.points -= data.settings.basePoints;
+                if (data.points < 0) data.points = 0;
+            } else {
+                // Complete
+                homework.completed = true;
+                homework.completedAt = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+                
+                // Calculate points
+                let points = data.settings.basePoints;
+                points += data.settings.streakBonus * (data.streak || 0);
+                
+                data.points += points;
+                data.stats.totalCompleted++;
+                data.stats.weekPoints += points;
+                
+                // Show celebration
+                showPointsAnimation(points);
+                triggerCelebration();
+                
+                // Check if all completed
+                const allDone = data.todayHomework.every(h => h.completed);
+                if (allDone) {
+                    setTimeout(() => triggerBigCelebration(), 500);
+                }
+            }
+            
+            saveData(data);
+            updatePointsDisplay(data.points);
+            renderHomework();
+            renderAchievements();
+            renderWeeklyChart();
+        }
+
+        function showPointsAnimation(points) {
+            const el = document.createElement('div');
+            el.className = 'points-change';
+            el.textContent = `+${points}⭐`;
+            el.style.left = '50%';
+            el.style.top = '200px';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
+        let currentEditIndex = -1;
+        let currentSubject = 'math';
+
+        function openAddHomework(index = -1) {
+            currentEditIndex = index;
+            const modal = document.getElementById('homeworkModal');
+            
+            if (index >= 0) {
+                const data = getData();
+                const homework = data.todayHomework[index];
+                document.getElementById('modalTitle').innerHTML = '✏️ 编辑作业';
+                document.getElementById('homeworkName').value = homework.name;
+                document.getElementById('homeworkQty').value = homework.qty;
+                selectSubject(document.querySelector(`[data-subject="${homework.subject}"]`));
+            } else {
+                document.getElementById('modalTitle').innerHTML = '➕ 添加作业';
+                document.getElementById('homeworkName').value = '';
+                document.getElementById('homeworkQty').value = '';
+                selectSubject(document.querySelector('[data-subject="math"]'));
+            }
+            
+            modal.classList.add('active');
+        }
+
+        function editHomework(index) {
+            openAddHomework(index);
+        }
+
+        function selectSubject(btn) {
+            document.querySelectorAll('.subject-option').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentSubject = btn.dataset.subject;
+        }
+
+        function saveHomework() {
+            const name = document.getElementById('homeworkName').value.trim();
+            const qty = parseInt(document.getElementById('homeworkQty').value) || 1;
+            
+            if (!name) {
+                showToast('请输入作业名称');
+                return;
+            }
+            
+            const data = getData();
+            
+            if (currentEditIndex >= 0) {
+                data.todayHomework[currentEditIndex] = {
+                    ...data.todayHomework[currentEditIndex],
+                    name,
+                    qty,
+                    subject: currentSubject
+                };
+                showToast('作业已更新 ✨');
+            } else {
+                data.todayHomework.push({
+                    id: Date.now(),
+                    name,
+                    qty,
+                    subject: currentSubject,
+                    completed: false
+                });
+                showToast('作业添加成功 🎉');
+            }
+            
+            saveData(data);
+            closeModal('homeworkModal');
+            renderHomework();
+        }
+
+        function deleteHomework(index) {
+            const data = getData();
+            const homework = data.todayHomework[index];
+            
+            document.getElementById('deleteConfirmText').textContent = `确定要删除「${homework.name}」吗？`;
+            document.getElementById('deleteModal').classList.add('active');
+            
+            currentDeleteIndex = index;
+            currentDeleteType = 'homework';
+        }
+
+        // ==================== Rewards ====================
+        function renderRewards() {
+            const data = getData();
+            const grid = document.getElementById('rewardsGrid');
+            
+            grid.innerHTML = data.rewards.map((reward, index) => {
+                const canAfford = data.points >= reward.price;
+                const remaining = reward.unlimited ? null : reward.remaining;
+                const isDisabled = !canAfford || (remaining !== null && remaining <= 0);
+                
+                return `
+                    <div class="reward-card ${isDisabled ? 'disabled' : ''}" onclick="${isDisabled ? '' : `redeemReward(${index})`}">
+                        <div class="reward-icon">${reward.emoji}</div>
+                        <div class="reward-name">${reward.name}</div>
+                        <div class="reward-price">⭐ ${reward.price}</div>
+                        ${remaining !== null ? `<div class="reward-remaining">剩余 ${remaining} 次</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        let currentRedeemIndex = -1;
+
+        function redeemReward(index) {
+            const data = getData();
+            const reward = data.rewards[index];
+            
+            document.getElementById('redeemConfirmText').textContent = `确定要用 ${reward.price} 星星兑换「${reward.name}」吗？`;
+            document.getElementById('redeemModal').classList.add('active');
+            
+            currentRedeemIndex = index;
+        }
+
+        function confirmRedeem() {
+            const data = getData();
+            const reward = data.rewards[currentRedeemIndex];
+            
+            if (data.points < reward.price) {
+                showToast('星星不够哦，再努力一点 💪');
+                closeModal('redeemModal');
+                return;
+            }
+            
+            data.points -= reward.price;
+            data.stats.totalRedeemed++;
+            
+            if (!reward.unlimited && reward.remaining > 0) {
+                reward.remaining--;
+            }
+            
+            saveData(data);
+            closeModal('redeemModal');
+            updatePointsDisplay(data.points);
+            renderRewards();
+            renderAchievements();
+            showToast(`恭喜获得「${reward.name}」🎉`);
+            triggerCelebration();
+        }
+
+        // ==================== Achievements ====================
+        function renderAchievements() {
+            const data = getData();
+            
+            document.getElementById('totalDays').textContent = data.stats.totalDays;
+            document.getElementById('weekPoints').textContent = data.stats.weekPoints;
+            document.getElementById('totalCompleted').textContent = data.stats.totalCompleted;
+            document.getElementById('totalRedeemed').textContent = data.stats.totalRedeemed;
+        }
+
+        function renderWeeklyChart() {
+            const data = getData();
+            const chart = document.getElementById('weeklyChart');
+            const days = ['日', '一', '二', '三', '四', '五', '六'];
+            
+            let html = '';
+            const today = new Date();
+            
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                const dayName = days[date.getDay()];
+                
+                let height = 20;
+                let points = 0;
+                
+                if (data.history[key]) {
+                    points = data.history[key].points || 0;
+                    height = Math.max(20, Math.min(100, points * 5));
+                }
+                
+                const isToday = i === 0;
+                
+                html += `
+                    <div class="chart-bar-wrapper">
+                        <div class="chart-value">${points}</div>
+                        <div class="chart-bar" style="height: ${height}px;"></div>
+                        <div class="chart-label">${dayName}${isToday ? '*' : ''}</div>
+                    </div>
+                `;
+            }
+            
+            chart.innerHTML = html;
+        }
+
+        // ==================== Settings ====================
+        function openSettings() {
+            initSettings();
+            document.getElementById('settingsPage').classList.add('active');
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsPage').classList.remove('active');
+        }
+
+        function initSettings() {
+            const data = getData();
+            
+            // Avatar selector
+            const avatarSelector = document.getElementById('avatarSelector');
+            const avatars = ['🧒', '👧', '👦', '🐼', '🐰', '🦁', '🐨', '🐸', '🦄', '🐱', '🐶', '🦋'];
+            avatarSelector.innerHTML = avatars.map(a => `
+                <div class="avatar-option ${data.profile.avatar === a ? 'active' : ''}" onclick="selectAvatar('${a}')">${a}</div>
+            `).join('');
+            
+            // Profile
+            document.getElementById('settingsName').value = data.profile.name;
+            document.getElementById('settingsGrade').value = data.profile.grade;
+            
+            // Settings
+            document.getElementById('basePoints').value = data.settings.basePoints;
+            document.getElementById('onTimeBonus').value = data.settings.onTimeBonus;
+            document.getElementById('streakBonus').value = data.settings.streakBonus;
+            
+            // Templates
+            renderTemplateList();
+            
+            // Rewards
+            renderRewardsList();
+        }
+
+        function selectAvatar(avatar) {
+            document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function saveProfile() {
+            const data = getData();
+            const name = document.getElementById('settingsName').value.trim();
+            const grade = document.getElementById('settingsGrade').value.trim();
+            const avatar = document.querySelector('.avatar-option.active')?.textContent || '🧒';
+            
+            if (!name) {
+                showToast('请输入名字');
+                return;
+            }
+            
+            data.profile = { name, grade, avatar };
+            saveData(data);
+            
+            document.getElementById('headerAvatar').textContent = avatar;
+            document.getElementById('headerName').textContent = name;
+            document.getElementById('headerGrade').textContent = grade;
+            
+            showToast('信息已保存 ✨');
+        }
+
+        function saveSettings() {
+            const data = getData();
+            
+            data.settings.basePoints = parseInt(document.getElementById('basePoints').value) || 5;
+            data.settings.onTimeBonus = parseInt(document.getElementById('onTimeBonus').value) || 0;
+            data.settings.streakBonus = parseInt(document.getElementById('streakBonus').value) || 0;
+            
+            saveData(data);
+            showToast('设置已保存 ⚙️');
+        }
+
+        function renderTemplateList() {
+            const data = getData();
+            const list = document.getElementById('templateList');
+            
+            list.innerHTML = data.homeworkTemplates.map((t, i) => `
+                <div class="template-item">
+                    <div class="template-info">
+                        <span class="subject-tag ${t.subject}">${getSubjectLabel(t.subject)}</span>
+                        <span class="template-name">${t.name}</span>
+                    </div>
+                    <button class="action-btn delete" onclick="deleteTemplate(${i})">🗑️</button>
+                </div>
+            `).join('');
+        }
+
+        function openAddTemplate() {
+            const name = prompt('请输入模板名称：');
+            if (!name) return;
+            
+            const subjects = ['math', 'chinese', 'english', 'other'];
+            const subject = prompt('选择科目 (1-数学 2-语文 3-英语 4-其他)：') || '1';
+            const qty = parseInt(prompt('默认数量：')) || 5;
+            
+            const data = getData();
+            data.homeworkTemplates.push({
+                id: Date.now(),
+                name,
+                subject: subjects[parseInt(subject) - 1] || 'other',
+                defaultQty: qty
+            });
+            
+            saveData(data);
+            renderTemplateList();
+            showToast('模板添加成功 ✨');
+        }
+
+        function deleteTemplate(index) {
+            const data = getData();
+            const name = data.homeworkTemplates[index].name;
+            
+            if (confirm(`确定删除「${name}」模板？`)) {
+                data.homeworkTemplates.splice(index, 1);
+                saveData(data);
+                renderTemplateList();
+                showToast('模板已删除');
+            }
+        }
+
+        function renderRewardsList() {
+            const data = getData();
+            const list = document.getElementById('rewardsList');
+            
+            list.innerHTML = data.rewards.map((r, i) => `
+                <div class="template-item">
+                    <div class="template-info">
+                        <span style="font-size: 24px;">${r.emoji}</span>
+                        <span class="template-name">${r.name}</span>
+                        <span style="color: var(--star); font-weight: 700;">⭐${r.price}</span>
+                    </div>
+                    <button class="action-btn delete" onclick="deleteReward(${i})">🗑️</button>
+                </div>
+            `).join('');
+        }
+
+        function openAddReward() {
+            document.getElementById('rewardModal').classList.add('active');
+        }
+
+        function saveReward() {
+            const name = document.getElementById('rewardName').value.trim();
+            const emoji = document.getElementById('rewardEmoji').value.trim() || '🎁';
+            const price = parseInt(document.getElementById('rewardPrice').value) || 10;
+            const quantity = parseInt(document.getElementById('rewardQty').value);
+            
+            if (!name) {
+                showToast('请输入奖励名称');
+                return;
+            }
+            
+            const data = getData();
+            data.rewards.push({
+                id: Date.now(),
+                name,
+                emoji,
+                price,
+                unlimited: !quantity,
+                quantity: quantity || null,
+                remaining: quantity || null
+            });
+            
+            saveData(data);
+            closeModal('rewardModal');
+            renderRewardsList();
+            renderRewards();
+            showToast('奖励添加成功 🎁');
+            
+            document.getElementById('rewardName').value = '';
+            document.getElementById('rewardEmoji').value = '';
+            document.getElementById('rewardPrice').value = '';
+            document.getElementById('rewardQty').value = '';
+        }
+
+        function deleteReward(index) {
+            const data = getData();
+            const name = data.rewards[index].name;
+            
+            if (confirm(`确定删除「${name}」奖励？`)) {
+                data.rewards.splice(index, 1);
+                saveData(data);
+                renderRewardsList();
+                renderRewards();
+                showToast('奖励已删除');
+            }
+        }
+
+        function exportData() {
+            const data = getData();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `作业打卡_${todayKey()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('数据已导出 📤');
+        }
+
+        function resetData() {
+            if (confirm('⚠️ 确定要重置所有数据吗？此操作不可恢复！')) {
+                if (confirm('再次确认：所有打卡记录和积分都将被清空！')) {
+                    localStorage.removeItem(STORAGE_KEY);
+                    location.reload();
+                }
+            }
+        }
+
+        // ==================== Delete Management ====================
+        let currentDeleteIndex = -1;
+        let currentDeleteType = '';
+
+        function confirmDelete() {
+            const data = getData();
+            
+            if (currentDeleteType === 'homework') {
+                const homework = data.todayHomework[currentDeleteIndex];
+                
+                if (homework.completed) {
+                    data.points -= data.settings.basePoints;
+                    if (data.points < 0) data.points = 0;
+                    data.stats.totalCompleted--;
+                    data.stats.weekPoints -= data.settings.basePoints;
+                }
+                
+                data.todayHomework.splice(currentDeleteIndex, 1);
+            }
+            
+            saveData(data);
+            closeModal('deleteModal');
+            updatePointsDisplay(data.points);
+            renderHomework();
+            renderAchievements();
+            renderWeeklyChart();
+            showToast('已删除');
+        }
+
+        // ==================== Modals ====================
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        // Close modal on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('active');
+                }
+            });
+        });
+
+        // ==================== Navigation ====================
+        function switchTab(tab) {
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            
+            // Scroll to appropriate section
+            const sections = {
+                home: '.date-card',
+                homework: '.homework-section',
+                rewards: '.rewards-section'
+            };
+            
+            if (sections[tab]) {
+                document.querySelector(sections[tab])?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        // ==================== Celebrations ====================
+        function triggerCelebration() {
+            const container = document.getElementById('celebration');
+            const colors = ['#FFD93D', '#FF9F43', '#26DE81', '#FD79A8', '#74B9FF'];
+            
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + '%';
+                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDelay = Math.random() * 0.5 + 's';
+                    container.appendChild(confetti);
+                    setTimeout(() => confetti.remove(), 2000);
+                }, i * 50);
+            }
+        }
+
+        function triggerBigCelebration() {
+            const star = document.createElement('div');
+            star.className = 'star-burst';
+            star.textContent = '⭐';
+            document.body.appendChild(star);
+            setTimeout(() => star.remove(), 1000);
+            
+            triggerCelebration();
+            setTimeout(triggerCelebration, 300);
+        }
+
+        // ==================== Toast ====================
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        // ==================== Save History on Unload ====================
+        function saveTodayHistory() {
+            const data = getData();
+            const today = todayKey();
+            const todayHomework = data.todayHomework;
+            const completed = todayHomework.length > 0 && todayHomework.every(h => h.completed);
+            const todayPoints = todayHomework.filter(h => h.completed).length * (data.settings.basePoints + (data.settings.streakBonus * (data.streak || 0)));
+            
+            data.history[today] = {
+                completed,
+                homework: todayHomework.map(h => ({ name: h.name, completed: h.completed })),
+                points: todayPoints
+            };
+            
+            if (completed) {
+                data.stats.totalDays++;
+            }
+            
+            saveData(data);
+        }
+
+        // Auto-save before unload
+        window.addEventListener('beforeunload', saveTodayHistory);
+        
+        // Also save periodically
+        setInterval(saveTodayHistory, 60000);
+
+        // ==================== Start ====================
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

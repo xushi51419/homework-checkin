@@ -7,6 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -44,6 +46,74 @@
             margin: 0 auto;
             padding-bottom: 80px;
             overflow-x: hidden;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s;
+        }
+
+        .loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            font-size: 60px;
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .loading-text {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* Sync Status */
+        .sync-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            z-index: 500;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .sync-status.syncing {
+            background: #FFF3E0;
+            color: var(--primary);
+        }
+
+        .sync-status.synced {
+            background: #E8F8F0;
+            color: var(--success);
+        }
+
+        .sync-status.offline {
+            background: #FFE5E5;
+            color: var(--warning);
         }
 
         /* Header */
@@ -1081,6 +1151,18 @@
     </style>
 </head>
 <body>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-spinner">⭐</div>
+        <div class="loading-text">正在启动...</div>
+    </div>
+
+    <!-- Sync Status -->
+    <div class="sync-status syncing" id="syncStatus">
+        <span id="syncIcon">🔄</span>
+        <span id="syncText">同步中...</span>
+    </div>
+
     <!-- Header -->
     <header class="header">
         <div class="header-top">
@@ -1347,9 +1429,59 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        // ==================== Data Management ====================
-        const STORAGE_KEY = 'homeworkCheckin';
-        
+        // ==================== Supabase Configuration ====================
+        const SUPABASE_URL = 'https://awtqprjvjnircivmilcp.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_w022C5sGmMX8n5ytnBJBAw_29ihb5SA';
+        const CONNECTION_TIMEOUT = 5000; // 5秒超时
+
+        // Initialize Supabase
+        let supabase = null;
+        let isCloudAvailable = false;
+
+        // Initialize with timeout protection
+        function initSupabase() {
+            try {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                return true;
+            } catch (e) {
+                console.error('Supabase init failed:', e);
+                return false;
+            }
+        }
+
+        initSupabase();
+
+        // ==================== User ID Management ====================
+        const USER_ID_KEY = 'homeworkUserId';
+
+        function getUserId() {
+            let userId = localStorage.getItem(USER_ID_KEY);
+            if (!userId) {
+                userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem(USER_ID_KEY, userId);
+            }
+            return userId;
+        }
+
+        // ==================== Sync Status ====================
+        function updateSyncStatus(status, message) {
+            const statusEl = document.getElementById('syncStatus');
+            const iconEl = document.getElementById('syncIcon');
+            const textEl = document.getElementById('syncText');
+
+            statusEl.className = 'sync-status ' + status;
+            textEl.textContent = message;
+
+            if (status === 'syncing') {
+                iconEl.textContent = '🔄';
+            } else if (status === 'synced') {
+                iconEl.textContent = '✓';
+            } else if (status === 'offline') {
+                iconEl.textContent = '⚠️';
+            }
+        }
+
+        // ==================== Default Data ====================
         const defaultData = {
             profile: {
                 name: '小明',
@@ -1384,42 +1516,154 @@
             }
         };
 
-        function getData() {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (stored) {
-                return JSON.parse(stored);
+        // ==================== Data Management ====================
+        let appData = null;
+        let localData = null;
+
+        // Fetch data from cloud
+        async function fetchCloudData() {
+            if (!supabase) return null;
+
+            const userId = getUserId();
+            try {
+                const { data, error } = await supabase
+                    .from('homework_data')
+                    .select('data')
+                    .eq('user_id', userId)
+                    .single();
+
+                if (error && error.code !== 'PGRST116') {
+                    console.error('Error fetching data:', error);
+                    return null;
+                }
+
+                return data ? data.data : null;
+            } catch (e) {
+                console.error('Fetch error:', e);
+                return null;
             }
-            return { ...defaultData };
         }
 
-        function saveData(data) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        // Save data to cloud
+        async function saveCloudData(data) {
+            if (!supabase) return;
+
+            const userId = getUserId();
+
+            try {
+                // First check if record exists
+                const { data: existing } = await supabase
+                    .from('homework_data')
+                    .select('id')
+                    .eq('user_id', userId)
+                    .single();
+
+                if (existing) {
+                    // Update existing record
+                    const { error } = await supabase
+                        .from('homework_data')
+                        .update({ data: data, updated_at: new Date().toISOString() })
+                        .eq('user_id', userId);
+
+                    if (error) throw error;
+                } else {
+                    // Insert new record
+                    const { error } = await supabase
+                        .from('homework_data')
+                        .insert({ user_id: userId, data: data });
+
+                    if (error) throw error;
+                }
+
+                isCloudAvailable = true;
+                updateSyncStatus('synced', '✓ 已同步');
+            } catch (error) {
+                console.error('Error saving data:', error);
+                // Silent fail - data is saved locally anyway
+            }
+        }
+
+        // Get local data
+        function getData() {
+            return localData || { ...defaultData };
+        }
+
+        // Save data locally and to cloud
+        async function saveData(data, saveToCloud = true) {
+            localData = data;
+            localStorage.setItem('homeworkLocalBackup', JSON.stringify(data));
+
+            if (saveToCloud) {
+                await saveCloudData(data);
+            }
         }
 
         // ==================== Initialization ====================
-        function init() {
+        async function init() {
+            updateSyncStatus('syncing', '连接中...');
+
+            // Load local data first (fast)
+            const localBackup = localStorage.getItem('homeworkLocalBackup');
+            if (localBackup) {
+                localData = JSON.parse(localBackup);
+            } else {
+                localData = { ...defaultData };
+            }
+
+            // Render UI immediately with local data
+            document.getElementById('loadingScreen').classList.add('hidden');
+            renderAll();
+
+            // Then try cloud sync in background (with timeout)
+            try {
+                const cloudData = await Promise.race([
+                    fetchCloudData(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), CONNECTION_TIMEOUT))
+                ]);
+
+                if (cloudData) {
+                    localData = cloudData;
+                    isCloudAvailable = true;
+                    updateSyncStatus('synced', '✓ 已同步');
+                    renderAll();
+                } else {
+                    // No cloud data, sync local to cloud
+                    await Promise.race([
+                        saveCloudData(localData),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), CONNECTION_TIMEOUT))
+                    ]);
+                    updateSyncStatus('synced', '✓ 本地模式');
+                }
+            } catch (error) {
+                console.log('Cloud sync skipped:', error.message);
+                updateSyncStatus('offline', '📱 本地模式');
+                isCloudAvailable = false;
+            }
+        }
+
+        function renderAll() {
             const data = getData();
-            
+
             // Update header
             document.getElementById('headerAvatar').textContent = data.profile.avatar;
             document.getElementById('headerName').textContent = data.profile.name;
             document.getElementById('headerGrade').textContent = data.profile.grade;
-            
+
             // Update points
             updatePointsDisplay(data.points);
-            
+
             // Update date
             updateDate();
-            
+
             // Check if need new day reset
             checkDayReset(data);
-            
+
             // Render lists
             renderHomework();
             renderRewards();
             renderAchievements();
             renderWeeklyChart();
-            
+
             // Init settings
             initSettings();
         }
@@ -1437,7 +1681,7 @@
             const month = now.getMonth() + 1;
             const date = now.getDate();
             const weekday = weekdays[now.getDay()];
-            
+
             document.getElementById('dateText').textContent = `${month}月${date}日 ${weekday}`;
             document.getElementById('dateDay').textContent = todayKey();
         }
@@ -1448,12 +1692,7 @@
         }
 
         function checkDayReset(data) {
-            const today = todayKey();
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayKey = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
-            
-            // Check streak
+            // Calculate streak
             let streak = 0;
             let checkDate = new Date();
             while (true) {
@@ -1465,18 +1704,16 @@
                     break;
                 }
             }
-            
+
             document.getElementById('streakBadge').textContent = `🔥 连续${streak}天`;
             data.streak = streak;
-            saveData(data);
         }
 
         // ==================== Homework ====================
         function renderHomework() {
             const data = getData();
             const list = document.getElementById('homeworkList');
-            const today = todayKey();
-            
+
             if (!data.todayHomework || data.todayHomework.length === 0) {
                 list.innerHTML = `
                     <div class="empty-state">
@@ -1488,10 +1725,10 @@
                 document.getElementById('statusText').textContent = '今日作业已全部完成！';
                 return;
             }
-            
+
             const allCompleted = data.todayHomework.every(h => h.completed);
             const completedCount = data.todayHomework.filter(h => h.completed).length;
-            
+
             if (allCompleted) {
                 document.getElementById('checkinStatus').className = 'checkin-status done';
                 document.getElementById('statusText').textContent = '🎉 今日作业已全部完成！';
@@ -1499,7 +1736,7 @@
                 document.getElementById('checkinStatus').className = 'checkin-status pending';
                 document.getElementById('statusText').textContent = `📝 ${completedCount}/${data.todayHomework.length} 已完成`;
             }
-            
+
             list.innerHTML = data.todayHomework.map((homework, index) => `
                 <div class="homework-item ${homework.completed ? 'completed' : ''}" onclick="toggleHomework(${index})">
                     <div class="homework-checkbox">${homework.completed ? '✓' : ''}</div>
@@ -1530,10 +1767,10 @@
             return subject === 'other' ? '项' : '题';
         }
 
-        function toggleHomework(index) {
+        async function toggleHomework(index) {
             const data = getData();
             const homework = data.todayHomework[index];
-            
+
             if (homework.completed) {
                 // Uncomplete
                 homework.completed = false;
@@ -1544,27 +1781,27 @@
                 // Complete
                 homework.completed = true;
                 homework.completedAt = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-                
+
                 // Calculate points
                 let points = data.settings.basePoints;
                 points += data.settings.streakBonus * (data.streak || 0);
-                
+
                 data.points += points;
                 data.stats.totalCompleted++;
                 data.stats.weekPoints += points;
-                
+
                 // Show celebration
                 showPointsAnimation(points);
                 triggerCelebration();
-                
+
                 // Check if all completed
                 const allDone = data.todayHomework.every(h => h.completed);
                 if (allDone) {
                     setTimeout(() => triggerBigCelebration(), 500);
                 }
             }
-            
-            saveData(data);
+
+            await saveData(data);
             updatePointsDisplay(data.points);
             renderHomework();
             renderAchievements();
@@ -1587,7 +1824,7 @@
         function openAddHomework(index = -1) {
             currentEditIndex = index;
             const modal = document.getElementById('homeworkModal');
-            
+
             if (index >= 0) {
                 const data = getData();
                 const homework = data.todayHomework[index];
@@ -1601,7 +1838,7 @@
                 document.getElementById('homeworkQty').value = '';
                 selectSubject(document.querySelector('[data-subject="math"]'));
             }
-            
+
             modal.classList.add('active');
         }
 
@@ -1615,17 +1852,17 @@
             currentSubject = btn.dataset.subject;
         }
 
-        function saveHomework() {
+        async function saveHomework() {
             const name = document.getElementById('homeworkName').value.trim();
             const qty = parseInt(document.getElementById('homeworkQty').value) || 1;
-            
+
             if (!name) {
                 showToast('请输入作业名称');
                 return;
             }
-            
+
             const data = getData();
-            
+
             if (currentEditIndex >= 0) {
                 data.todayHomework[currentEditIndex] = {
                     ...data.todayHomework[currentEditIndex],
@@ -1644,8 +1881,8 @@
                 });
                 showToast('作业添加成功 🎉');
             }
-            
-            saveData(data);
+
+            await saveData(data);
             closeModal('homeworkModal');
             renderHomework();
         }
@@ -1653,10 +1890,10 @@
         function deleteHomework(index) {
             const data = getData();
             const homework = data.todayHomework[index];
-            
+
             document.getElementById('deleteConfirmText').textContent = `确定要删除「${homework.name}」吗？`;
             document.getElementById('deleteModal').classList.add('active');
-            
+
             currentDeleteIndex = index;
             currentDeleteType = 'homework';
         }
@@ -1665,12 +1902,12 @@
         function renderRewards() {
             const data = getData();
             const grid = document.getElementById('rewardsGrid');
-            
+
             grid.innerHTML = data.rewards.map((reward, index) => {
                 const canAfford = data.points >= reward.price;
                 const remaining = reward.unlimited ? null : reward.remaining;
                 const isDisabled = !canAfford || (remaining !== null && remaining <= 0);
-                
+
                 return `
                     <div class="reward-card ${isDisabled ? 'disabled' : ''}" onclick="${isDisabled ? '' : `redeemReward(${index})`}">
                         <div class="reward-icon">${reward.emoji}</div>
@@ -1687,31 +1924,31 @@
         function redeemReward(index) {
             const data = getData();
             const reward = data.rewards[index];
-            
+
             document.getElementById('redeemConfirmText').textContent = `确定要用 ${reward.price} 星星兑换「${reward.name}」吗？`;
             document.getElementById('redeemModal').classList.add('active');
-            
+
             currentRedeemIndex = index;
         }
 
-        function confirmRedeem() {
+        async function confirmRedeem() {
             const data = getData();
             const reward = data.rewards[currentRedeemIndex];
-            
+
             if (data.points < reward.price) {
                 showToast('星星不够哦，再努力一点 💪');
                 closeModal('redeemModal');
                 return;
             }
-            
+
             data.points -= reward.price;
             data.stats.totalRedeemed++;
-            
+
             if (!reward.unlimited && reward.remaining > 0) {
                 reward.remaining--;
             }
-            
-            saveData(data);
+
+            await saveData(data);
             closeModal('redeemModal');
             updatePointsDisplay(data.points);
             renderRewards();
@@ -1723,7 +1960,7 @@
         // ==================== Achievements ====================
         function renderAchievements() {
             const data = getData();
-            
+
             document.getElementById('totalDays').textContent = data.stats.totalDays;
             document.getElementById('weekPoints').textContent = data.stats.weekPoints;
             document.getElementById('totalCompleted').textContent = data.stats.totalCompleted;
@@ -1734,26 +1971,26 @@
             const data = getData();
             const chart = document.getElementById('weeklyChart');
             const days = ['日', '一', '二', '三', '四', '五', '六'];
-            
+
             let html = '';
             const today = new Date();
-            
+
             for (let i = 6; i >= 0; i--) {
                 const date = new Date(today);
                 date.setDate(date.getDate() - i);
                 const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                 const dayName = days[date.getDay()];
-                
+
                 let height = 20;
                 let points = 0;
-                
+
                 if (data.history[key]) {
                     points = data.history[key].points || 0;
                     height = Math.max(20, Math.min(100, points * 5));
                 }
-                
+
                 const isToday = i === 0;
-                
+
                 html += `
                     <div class="chart-bar-wrapper">
                         <div class="chart-value">${points}</div>
@@ -1762,7 +1999,7 @@
                     </div>
                 `;
             }
-            
+
             chart.innerHTML = html;
         }
 
@@ -1778,26 +2015,26 @@
 
         function initSettings() {
             const data = getData();
-            
+
             // Avatar selector
             const avatarSelector = document.getElementById('avatarSelector');
             const avatars = ['🧒', '👧', '👦', '🐼', '🐰', '🦁', '🐨', '🐸', '🦄', '🐱', '🐶', '🦋'];
             avatarSelector.innerHTML = avatars.map(a => `
                 <div class="avatar-option ${data.profile.avatar === a ? 'active' : ''}" onclick="selectAvatar('${a}')">${a}</div>
             `).join('');
-            
+
             // Profile
             document.getElementById('settingsName').value = data.profile.name;
             document.getElementById('settingsGrade').value = data.profile.grade;
-            
+
             // Settings
             document.getElementById('basePoints').value = data.settings.basePoints;
             document.getElementById('onTimeBonus').value = data.settings.onTimeBonus;
             document.getElementById('streakBonus').value = data.settings.streakBonus;
-            
+
             // Templates
             renderTemplateList();
-            
+
             // Rewards
             renderRewardsList();
         }
@@ -1807,42 +2044,42 @@
             event.target.classList.add('active');
         }
 
-        function saveProfile() {
+        async function saveProfile() {
             const data = getData();
             const name = document.getElementById('settingsName').value.trim();
             const grade = document.getElementById('settingsGrade').value.trim();
             const avatar = document.querySelector('.avatar-option.active')?.textContent || '🧒';
-            
+
             if (!name) {
                 showToast('请输入名字');
                 return;
             }
-            
+
             data.profile = { name, grade, avatar };
-            saveData(data);
-            
+            await saveData(data);
+
             document.getElementById('headerAvatar').textContent = avatar;
             document.getElementById('headerName').textContent = name;
             document.getElementById('headerGrade').textContent = grade;
-            
+
             showToast('信息已保存 ✨');
         }
 
-        function saveSettings() {
+        async function saveSettings() {
             const data = getData();
-            
+
             data.settings.basePoints = parseInt(document.getElementById('basePoints').value) || 5;
             data.settings.onTimeBonus = parseInt(document.getElementById('onTimeBonus').value) || 0;
             data.settings.streakBonus = parseInt(document.getElementById('streakBonus').value) || 0;
-            
-            saveData(data);
+
+            await saveData(data);
             showToast('设置已保存 ⚙️');
         }
 
         function renderTemplateList() {
             const data = getData();
             const list = document.getElementById('templateList');
-            
+
             list.innerHTML = data.homeworkTemplates.map((t, i) => `
                 <div class="template-item">
                     <div class="template-info">
@@ -1854,14 +2091,14 @@
             `).join('');
         }
 
-        function openAddTemplate() {
+        async function openAddTemplate() {
             const name = prompt('请输入模板名称：');
             if (!name) return;
-            
+
             const subjects = ['math', 'chinese', 'english', 'other'];
             const subject = prompt('选择科目 (1-数学 2-语文 3-英语 4-其他)：') || '1';
             const qty = parseInt(prompt('默认数量：')) || 5;
-            
+
             const data = getData();
             data.homeworkTemplates.push({
                 id: Date.now(),
@@ -1869,19 +2106,19 @@
                 subject: subjects[parseInt(subject) - 1] || 'other',
                 defaultQty: qty
             });
-            
-            saveData(data);
+
+            await saveData(data);
             renderTemplateList();
             showToast('模板添加成功 ✨');
         }
 
-        function deleteTemplate(index) {
+        async function deleteTemplate(index) {
             const data = getData();
             const name = data.homeworkTemplates[index].name;
-            
+
             if (confirm(`确定删除「${name}」模板？`)) {
                 data.homeworkTemplates.splice(index, 1);
-                saveData(data);
+                await saveData(data);
                 renderTemplateList();
                 showToast('模板已删除');
             }
@@ -1890,7 +2127,7 @@
         function renderRewardsList() {
             const data = getData();
             const list = document.getElementById('rewardsList');
-            
+
             list.innerHTML = data.rewards.map((r, i) => `
                 <div class="template-item">
                     <div class="template-info">
@@ -1907,17 +2144,17 @@
             document.getElementById('rewardModal').classList.add('active');
         }
 
-        function saveReward() {
+        async function saveReward() {
             const name = document.getElementById('rewardName').value.trim();
             const emoji = document.getElementById('rewardEmoji').value.trim() || '🎁';
             const price = parseInt(document.getElementById('rewardPrice').value) || 10;
             const quantity = parseInt(document.getElementById('rewardQty').value);
-            
+
             if (!name) {
                 showToast('请输入奖励名称');
                 return;
             }
-            
+
             const data = getData();
             data.rewards.push({
                 id: Date.now(),
@@ -1928,26 +2165,26 @@
                 quantity: quantity || null,
                 remaining: quantity || null
             });
-            
-            saveData(data);
+
+            await saveData(data);
             closeModal('rewardModal');
             renderRewardsList();
             renderRewards();
             showToast('奖励添加成功 🎁');
-            
+
             document.getElementById('rewardName').value = '';
             document.getElementById('rewardEmoji').value = '';
             document.getElementById('rewardPrice').value = '';
             document.getElementById('rewardQty').value = '';
         }
 
-        function deleteReward(index) {
+        async function deleteReward(index) {
             const data = getData();
             const name = data.rewards[index].name;
-            
+
             if (confirm(`确定删除「${name}」奖励？`)) {
                 data.rewards.splice(index, 1);
-                saveData(data);
+                await saveData(data);
                 renderRewardsList();
                 renderRewards();
                 showToast('奖励已删除');
@@ -1966,11 +2203,13 @@
             showToast('数据已导出 📤');
         }
 
-        function resetData() {
+        async function resetData() {
             if (confirm('⚠️ 确定要重置所有数据吗？此操作不可恢复！')) {
                 if (confirm('再次确认：所有打卡记录和积分都将被清空！')) {
-                    localStorage.removeItem(STORAGE_KEY);
-                    location.reload();
+                    localData = { ...defaultData };
+                    await saveData(localData);
+                    renderAll();
+                    showToast('数据已重置 🗑️');
                 }
             }
         }
@@ -1979,23 +2218,23 @@
         let currentDeleteIndex = -1;
         let currentDeleteType = '';
 
-        function confirmDelete() {
+        async function confirmDelete() {
             const data = getData();
-            
+
             if (currentDeleteType === 'homework') {
                 const homework = data.todayHomework[currentDeleteIndex];
-                
+
                 if (homework.completed) {
                     data.points -= data.settings.basePoints;
                     if (data.points < 0) data.points = 0;
                     data.stats.totalCompleted--;
                     data.stats.weekPoints -= data.settings.basePoints;
                 }
-                
+
                 data.todayHomework.splice(currentDeleteIndex, 1);
             }
-            
-            saveData(data);
+
+            await saveData(data);
             closeModal('deleteModal');
             updatePointsDisplay(data.points);
             renderHomework();
@@ -2022,14 +2261,14 @@
         function switchTab(tab) {
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
             event.currentTarget.classList.add('active');
-            
+
             // Scroll to appropriate section
             const sections = {
                 home: '.date-card',
                 homework: '.homework-section',
                 rewards: '.rewards-section'
             };
-            
+
             if (sections[tab]) {
                 document.querySelector(sections[tab])?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
@@ -2039,7 +2278,7 @@
         function triggerCelebration() {
             const container = document.getElementById('celebration');
             const colors = ['#FFD93D', '#FF9F43', '#26DE81', '#FD79A8', '#74B9FF'];
-            
+
             for (let i = 0; i < 20; i++) {
                 setTimeout(() => {
                     const confetti = document.createElement('div');
@@ -2059,7 +2298,7 @@
             star.textContent = '⭐';
             document.body.appendChild(star);
             setTimeout(() => star.remove(), 1000);
-            
+
             triggerCelebration();
             setTimeout(triggerCelebration, 300);
         }
@@ -2073,31 +2312,57 @@
         }
 
         // ==================== Save History on Unload ====================
-        function saveTodayHistory() {
+        async function saveTodayHistory() {
             const data = getData();
             const today = todayKey();
             const todayHomework = data.todayHomework;
             const completed = todayHomework.length > 0 && todayHomework.every(h => h.completed);
             const todayPoints = todayHomework.filter(h => h.completed).length * (data.settings.basePoints + (data.settings.streakBonus * (data.streak || 0)));
-            
+
             data.history[today] = {
                 completed,
                 homework: todayHomework.map(h => ({ name: h.name, completed: h.completed })),
                 points: todayPoints
             };
-            
+
             if (completed) {
                 data.stats.totalDays++;
             }
-            
-            saveData(data);
+
+            await saveData(data);
         }
 
         // Auto-save before unload
         window.addEventListener('beforeunload', saveTodayHistory);
-        
-        // Also save periodically
-        setInterval(saveTodayHistory, 60000);
+
+        // Also save periodically (every 30 seconds)
+        setInterval(saveTodayHistory, 30000);
+
+        // Poll for cloud updates (every 10 seconds) - for multi-device sync
+        setInterval(async () => {
+            if (!isCloudAvailable) return;
+
+            try {
+                const cloudData = await Promise.race([
+                    fetchCloudData(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+                ]);
+                if (cloudData) {
+                    // Check if cloud data is newer
+                    const cloudUpdated = new Date(cloudData._updatedAt || 0);
+                    const localUpdated = new Date(localData._updatedAt || 0);
+
+                    if (cloudUpdated > localUpdated) {
+                        // Cloud has newer data, update local
+                        localData = cloudData;
+                        renderAll();
+                        showToast('📱 检测到新数据，已同步');
+                    }
+                }
+            } catch (e) {
+                // Silently fail polling
+            }
+        }, 10000);
 
         // ==================== Start ====================
         document.addEventListener('DOMContentLoaded', init);
